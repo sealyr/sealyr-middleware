@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: sealyr-middleware-redis
+server:
+  port: 28080
