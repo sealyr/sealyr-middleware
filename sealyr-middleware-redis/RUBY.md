@@ -1,12 +1,14 @@
+# Ruby
+
 Ruby 是一种纯粹的面向对象编程语言，由日本的松本行弘创建于1993年。
 
 http://www.ruby-lang.org/zh_cn/
 
-目前最新的稳定版本是 2.5.1。
+当前最新的稳定版本是 2.5.1。
 
 ## yum 安装
 
-_该方法适用于可连接外网的服务器，安装的ruby版本较旧。_
+该方法适用于可连接外网的服务器，安装的 ruby 版本较旧。
 
 **1. 检测是否安装：**
 
@@ -58,7 +60,9 @@ ruby 2.0.0p648 (2015-12-16) [x86_64-linux]
 
 ## 编译安装
 
-**1. 准备安装包**
+该方法需要使用 root 权限。
+
+**1. 准备安装包：**
 
 ```
 - ruby-2.5.1.tar.gz
@@ -104,7 +108,7 @@ ERROR:  While executing gem ... (NoMethodError)
 报错一：安装zlib：
 
 ```
-[root@centos ~]#tar -zxvf zlib-1.2.11.tar.gz -C /usr/local/
+[root@centos ~]# tar -zxvf zlib-1.2.11.tar.gz -C /usr/local/
 [root@centos ~]# cd /usr/local/zlib-1.2.11/
 [root@centos zlib-1.2.11]# ./configure
 [root@centos zlib-1.2.11]# make
@@ -173,13 +177,13 @@ Error fetching https://gems.ruby-china.org/:
 	no such name (https://gems.ruby-china.org/specs.4.8.gz)
 ```
 
-_报错：可能是网络的原因，因此只能使用本地安装。_
+报错：由于网络的原因，因此只能使用本地安装。
 
 
 - 在ruby-china上查找redis的相关版本：https://gems.ruby-china.org/gems/redis/versions
 - 下载地址：https://gems.ruby-china.org/downloads/redis-4.0.1.gem
 
-本地安装：
+本地安装 redis：
 
 ```
 [root@centos ~]# gem install -l ./redis-4.0.1.gem

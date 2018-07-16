@@ -40,6 +40,7 @@ spring.redis.sentinel.nodes=
 # 在群集中执行命令时要遵循的最大重定向数目（可选）
 spring.redis.cluster.max-redirects=5
 # 集群服务节点（必须）
+# 可以写集群全部的节点，也可以只写主节点
 spring.redis.cluster.nodes=10.7.112.125:6379,10.7.112.126:6379,10.7.112.127:6379
 
 # Jedis 连接池配置（保持默认）
@@ -59,6 +60,7 @@ spring.redis.lettuce.pool.min-idle=0
 # 在群集中执行命令时要遵循的最大重定向数目（可选）
 spring.redis.cluster.max-redirects=5
 # 集群服务节点（必须）
+# 可以写集群全部的节点，也可以只写主节点
 spring.redis.cluster.nodes=10.7.112.125:6379,10.7.112.126:6379,10.7.112.127:6379
 ```
 
@@ -151,7 +153,7 @@ Spring Data Redis 提供的序列化类：
 
 **4. 自定义序列化**
 
-编写配置类即可：
+由于RedisTemplate使用了`JdkSerializationRedisSerializer`作为序列化类，缺点非常明显：1）性能差 2）存储为二进制格式，通过redis-cli不易查看。如果想要改变RedisTemplate的默认配置，编写自定义配置类即可：
 
 ```
 @Bean(name = "redisTemplate")
@@ -164,6 +166,8 @@ public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory redisC
 }
 ```
 
+_注意：Spring Data Redis 提供的JSON序列化类较为复杂，不易使用。想要存储JSON格式数据，可以通过第三方JSON包，先将对象转换为string。然后直接使用StringRedisTemplate接口提供的方法更好。_
+
 **5. 操作接口**
 
 通过操作接口可简化方法调用：
@@ -172,6 +176,10 @@ public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory redisC
 // inject the actual template
 @Autowired
 private RedisTemplate<String, String> template;
+
+// inject the actual template
+@Autowired
+private StringRedisTemplate stringRedisTemplate;
 
 // inject the template as ListOperations
 // can also inject as Value, Set, ZSet, and HashOperations
@@ -217,10 +225,10 @@ byte[] msg = ...
 byte[] channel = ...
 con.publish(msg, channel); // send message through RedisTemplate
 RedisTemplate template = ...
-template.convertAndSend("xbird.msg", "world");
+template.convertAndSend("sealyr.msg", "world");
 ```
 
-**2. 接入消息**
+**2. 接收消息**
 
 ```
 # 1. 定义委托接口（选择任意一个方法即可）
@@ -254,7 +262,7 @@ public RedisMessageListenerContainer redisContainer(
     RedisConnectionFactory redisConnectionFactory) {
   RedisMessageListenerContainer container = new RedisMessageListenerContainer();
   container.setConnectionFactory(redisConnectionFactory);
-  container.addMessageListener(messageListener(), new ChannelTopic("xbird.msg"));
+  container.addMessageListener(messageListener(), new ChannelTopic("sealyr.msg"));
   return container;
 }
 ```
@@ -344,3 +352,49 @@ public class Example {
 - ReactiveSetOperations
 - ReactiveValueOperations
 - ReactiveZSetOperations
+
+## Lettuce
+
+Spring Boot 2.0 开始，Redis 客户端驱动由 Jedis 变成了 Lettuce，这是为什么呢？
+
+https://lettuce.io/
+
+Lettuce 的优秀特性如下：
+
+- 基于 netty，支持事件模型
+- 支持 同步、异步、响应式的方式
+- 可以方便的连接 Redis Sentinel
+- 完全支持 Redis Cluster
+- SSL 连接
+- Streaming API
+- CDI 和 Spring 的集成
+- 兼容 Java 8 和 9
+
+**重要特性一：多线程共享**
+
+Jedis 是直连模式，在多个线程间共享一个 Jedis 实例时是线程不安全的，如果想要在多线程环境下使用 Jedis，需要使用连接池，每个线程都去拿自己的 Jedis 实例，当连接数量增多时，物理连接成本就较高了。
+
+Lettuce 是基于 netty 的，连接实例可以在多个线程间共享，所以，一个多线程的应用可以使用一个连接实例，而不用担心并发线程的数量。
+
+**重要特性二：异步**
+
+异步的方式可以让我们更好的利用系统资源，而不用浪费线程等待网络或磁盘I/O。
+
+Lettuce 是基于 netty 的，netty 是一个多线程、事件驱动的 I/O 框架，所以 Lettuce 可以帮助我们充分利用异步的优势。
+
+**重要特性三：很好的支持 Redis Cluster**
+
+对 Redis Cluster 的支持包括：
+
+- 支持所有的 Cluster 命令
+- 基于哈希槽的命令路由
+- 对 cluster 命令的高层抽象
+- 在多节点上执行命令
+- 根据槽和地址端口直接连接cluster中的节点
+- SSL和认证
+- cluster 拓扑的更新
+- 发布/订阅
+
+**重要特性四：Streaming API**
+
+Redis 中可能会有海量的数据，当你获取一个大的数据集合时，有可能会被撑爆，Lettuce 可以让我们使用流的方式来处理。
